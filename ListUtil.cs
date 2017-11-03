@@ -27,21 +27,19 @@ namespace AY_Util
         public delegate void VoidFunc ( T t );
 
         /// <summary>
-        /// this function is little heavy because every call use new.
-        /// this function will filter the list under the function.
+        /// this function remove not match elements in list.
         /// </summary>
         /// <param name="list"></param>
         /// <param name="func"></param>
         /// <returns>filtered list.</returns>
         public static List<T> Filter ( List<T> list, FilterFunc func )
         {
-            List<T> ret = new List<T>();
-            foreach (var t in list)
+            list.RemoveAll( e =>
             {
-                var match = func( t );
-                if (match) { ret.Add( t ); }
-            }
-            return ret;
+                var ok = func( e );
+                return !ok;
+            } );
+            return list;
         }
 
         /// <summary>
