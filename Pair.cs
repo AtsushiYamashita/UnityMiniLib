@@ -45,7 +45,7 @@ namespace AY_Util
         /// <typeparam name="S2">converted class.</typeparam>
         /// <param name="conv">convert function.</param>
         /// <returns>converted instance,</returns>
-        public Pair<F2, S2> Converter<F2, S2> ( Converte<F2, S2> conv )
+        public virtual Pair<F2, S2> Converter<F2, S2> ( Converte<F2, S2> conv )
         {
             return conv( this );
         }
@@ -73,7 +73,7 @@ namespace AY_Util
         /// </summary>
         /// <param name="proc">process function</param>
         /// <returns>processed instance,</returns>
-        public Pair<F, S> Processer ( Process proc )
+        public virtual Pair<F, S> Processer ( Process proc )
         {
             return proc( this );
         }
@@ -84,7 +84,7 @@ namespace AY_Util
         /// <param name="obj1"></param>
         /// <param name="obj2"></param>
         /// <returns></returns>
-        public Pair<F, S> Set ( F obj1, S obj2 )
+        public virtual Pair<F, S> Set ( F obj1, S obj2 )
         {
             mFirst = obj1; mSecond = obj2; return this;
         }
@@ -94,7 +94,7 @@ namespace AY_Util
         /// </summary>
         /// <param name="obj"></param>
         /// <returns></returns>
-        public Pair<F, S> SetFirst ( F obj )
+        public virtual Pair<F, S> SetFirst ( F obj )
         {
             mFirst = obj; return this;
         }
@@ -104,7 +104,7 @@ namespace AY_Util
         /// </summary>
         /// <param name="obj"></param>
         /// <returns></returns>
-        public Pair<F, S> SetSecond ( S obj )
+        public virtual Pair<F, S> SetSecond ( S obj )
         {
             mSecond = obj; return this;
         }
