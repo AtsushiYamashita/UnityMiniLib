@@ -11,17 +11,12 @@ namespace AY_Util
     /// If you set call backs,
     /// </summary>
     /// <typeparam name="T"></typeparam>
-    public class ReflectiveValue<T>
+    public class ReflectiveValue<T> : Value<T>
     {
         /// <summary>
         /// call back process list.
         /// </summary>
         protected List<Notice> mNoticeCall;
-
-        /// <summary>
-        /// watching value.
-        /// </summary>
-        protected T mTarget;
 
         /// <summary>
         /// value name
@@ -42,7 +37,7 @@ namespace AY_Util
         /// <returns></returns>
         public T Get ( )
         {
-            return mTarget;
+            return mValue;
         }
 
         /// <summary>
@@ -83,9 +78,19 @@ namespace AY_Util
         /// <returns></returns>
         public ReflectiveValue<T> Write ( T instance )
         {
-            foreach (var cb in mNoticeCall) { cb( mValueName, mTarget, instance ); }
-            mTarget = instance;
+            foreach (var cb in mNoticeCall) { cb( mValueName, mValue, instance ); }
+            mValue = instance;
             return this;
         }
+    }
+
+    /// <summary>
+    /// Use this class for primitive value wrapping.
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    [System.Serializable]
+    public class Value<T>
+    {
+        public T mValue;
     }
 }
