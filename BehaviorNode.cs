@@ -16,14 +16,27 @@ namespace AY_Util
     public class BehaviorNode : MonoBehaviour
     {
         /// <summary>
-        /// process in this node.
+        /// close process.
         /// </summary>
         [SerializeField]
-        private ProcessEventWrapper[] mProcesses = {
-            new ProcessEventWrapper(Process.START.ToString()),
-            new ProcessEventWrapper(Process.UPDATE.ToString()),
-            new ProcessEventWrapper(Process.CLOSE.ToString()),
-        };
+        private BehaviorProcess mClose;
+
+        /// <summary>
+        /// process in this node.
+        /// </summary>
+        private ProcessDictionary mProcesses = new ProcessDictionary();
+
+        /// <summary>
+        /// start process.
+        /// </summary>
+        [SerializeField]
+        private BehaviorProcess mStrt;
+
+        /// <summary>
+        /// update process.
+        /// </summary>
+        [SerializeField]
+        private BehaviorProcess mUpdate;
 
         /// <summary>
         ///
@@ -53,8 +66,8 @@ namespace AY_Util
                 if (ch.gameObject.activeSelf == false) { continue; }
 
                 var bn = ch.GetComponent<BehaviorNode>();
-                if (bn == null) { continue; }
-                if (bn.enabled == false) { continue; }
+                var enable = bn == null || bn.enabled == false;
+                if (enable) { continue; }
 
                 list.Add( bn );
                 list.AddRange( bn.EnableChildren() );
@@ -67,9 +80,9 @@ namespace AY_Util
         /// </summary>
         /// <param name="proc"></param>
         /// <returns></returns>
-        public ProcessEventWrapper GetProcessInstance ( Process proc )
+        public BehaviorProcess GetProcessInstance ( Process proc )
         {
-            return mProcesses[( int )proc];
+            return mProcesses[proc];
         }
 
         /// <summary>
@@ -82,7 +95,7 @@ namespace AY_Util
         /// </summary>
         virtual protected void ProcessUpdate ( )
         {
-            foreach (var proc in mProcesses) { proc.Action( this ); }
+            foreach (var proc in mProcesses) { proc.Value.Action( this ); }
         }
 
         /// <summary>
@@ -90,6 +103,9 @@ namespace AY_Util
         /// </summary>
         private void Start ( )
         {
+            mProcesses.AddChain( Process.START, mStrt )
+                .AddChain( Process.UPDATE, mUpdate )
+                .AddChain( Process.CLOSE, mClose );
             ProcessInitialize();
         }
 
@@ -101,86 +117,72 @@ namespace AY_Util
         {
             ProcessUpdate();
         }
+    }
+
+    /// <summary>
+    /// Behavior state event wrapper.
+    /// </summary>
+    [System.Serializable]
+    public class BehaviorProcess : UnityEvent<BehaviorNode>
+    {
+        /// <summary>
+        /// doable judge function.
+        /// </summary>
+        private Judge mJudge = ( node ) => { return true; };
 
         /// <summary>
-        /// Wrapper class of unity event.
+        /// doable judge function delegate.
         /// </summary>
-        public class BehaviorProcess : UnityEvent<BehaviorNode> { }
+        /// <param name="obj"></param>
+        /// <returns></returns>
+        public delegate bool Judge ( BehaviorNode obj );
 
         /// <summary>
-        /// Behavior state event wrapper.
+        /// state action.
         /// </summary>
-        [System.Serializable]
-        public class ProcessEventWrapper
+        /// <param name="node"></param>
+        public void Action ( BehaviorNode node )
         {
-            /// <summary>
-            /// unity event wrapper of behavior.
-            /// </summary>
-            [SerializeField]
-            private BehaviorProcess mEvent = new BehaviorProcess();
+            if (IsDoable( node ) == false) { return; }
+            Invoke( node );
+        }
 
-            /// <summary>
-            /// doable judge function.
-            /// </summary>
-            private Judge mJudge = ( node ) => { return true; };
+        /// <summary>
+        /// set doable judge function.
+        /// </summary>
+        /// <param name="jucge"></param>
+        /// <returns></returns>
+        public BehaviorProcess SetJudge ( Judge jucge )
+        {
+            mJudge = jucge; return this;
+        }
 
-            /// <summary>
-            /// this process's name.
-            /// </summary>
-            [SerializeField]
-            private string mProcessName;
+        /// <summary>
+        /// is this action doable check.
+        /// </summary>
+        /// <param name="node"></param>
+        /// <returns></returns>
+        protected bool IsDoable ( BehaviorNode node )
+        {
+            return mJudge( node );
+        }
+    }
 
-            /// <summary>
-            /// named instance constructor.
-            /// </summary>
-            /// <param name="name"></param>
-            public ProcessEventWrapper ( string name )
-            {
-                mProcessName = name;
-            }
-
-            /// <summary>
-            /// doable judge function delegate.
-            /// </summary>
-            /// <param name="obj"></param>
-            /// <returns></returns>
-            public delegate bool Judge ( BehaviorNode obj );
-
-            /// <summary>
-            /// state action.
-            /// </summary>
-            /// <param name="node"></param>
-            public void Action ( BehaviorNode node )
-            {
-                if (IsDoable( node ) == false) { return; }
-                mEvent.Invoke( node );
-            }
-
-            public ProcessEventWrapper Add ( UnityAction<BehaviorNode> proc )
-            {
-                mEvent.AddListener( proc );
-                return this;
-            }
-
-            /// <summary>
-            /// set doable judge function.
-            /// </summary>
-            /// <param name="jucge"></param>
-            /// <returns></returns>
-            public ProcessEventWrapper SetJudge ( Judge jucge )
-            {
-                mJudge = jucge; return this;
-            }
-
-            /// <summary>
-            /// is this action doable check.
-            /// </summary>
-            /// <param name="node"></param>
-            /// <returns></returns>
-            protected bool IsDoable ( BehaviorNode node )
-            {
-                return mJudge( node );
-            }
+    /// <summary>
+    /// This class use for short cording and readability.
+    /// </summary>
+    public class ProcessDictionary : Dictionary<BehaviorNode.Process, BehaviorProcess>
+    {
+        /// <summary>
+        /// This update the add process for chain method.
+        /// </summary>
+        /// <param name="a"></param>
+        /// <param name="b"></param>
+        /// <returns>return this instance for chain.</returns>
+        public ProcessDictionary AddChain ( BehaviorNode.Process a, BehaviorProcess b )
+        {
+            Add( a, b );
+            return this;
         }
     }
 }
