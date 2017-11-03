@@ -16,15 +16,20 @@ namespace AY_Util
     public class BehaviorNode : MonoBehaviour
     {
         /// <summary>
-        /// node name.
-        /// </summary>
-        [SerializeField]
-        private string mNodeName = "";
-
-        /// <summary>
         /// process in this node.
         /// </summary>
-        private ProcessEventWrapper[] mProcesses = new ProcessEventWrapper[( int )Process.SIZE];
+        [SerializeField]
+        private ProcessEventWrapper[] mProcesses = {
+            new ProcessEventWrapper(Process.START.ToString()),
+            new ProcessEventWrapper(Process.UPDATE.ToString()),
+            new ProcessEventWrapper(Process.CLOSE.ToString()),
+        };
+
+        /// <summary>
+        ///
+        /// </summary>
+        /// <param name="node"></param>
+        public delegate void BehaviourFunc ( BehaviorNode node );
 
         /// <summary>
         /// scene event type
@@ -32,16 +37,6 @@ namespace AY_Util
         public enum Process
         {
             START, UPDATE, CLOSE, SIZE
-        }
-
-        /// <summary>
-        /// get process instance.
-        /// </summary>
-        /// <param name="proc"></param>
-        /// <returns></returns>
-        public ProcessEventWrapper GetProcessInstance ( Process proc )
-        {
-            return mProcesses[( int )proc];
         }
 
         /// <summary>
@@ -65,6 +60,16 @@ namespace AY_Util
                 list.AddRange( bn.EnableChildren() );
             }
             return list;
+        }
+
+        /// <summary>
+        /// get process instance.
+        /// </summary>
+        /// <param name="proc"></param>
+        /// <returns></returns>
+        public ProcessEventWrapper GetProcessInstance ( Process proc )
+        {
+            return mProcesses[( int )proc];
         }
 
         /// <summary>
@@ -100,7 +105,7 @@ namespace AY_Util
         /// <summary>
         /// Wrapper class of unity event.
         /// </summary>
-        public class BehaviourEvent : UnityEvent<BehaviorNode> { }
+        public class BehaviorProcess : UnityEvent<BehaviorNode> { }
 
         /// <summary>
         /// Behavior state event wrapper.
@@ -112,12 +117,27 @@ namespace AY_Util
             /// unity event wrapper of behavior.
             /// </summary>
             [SerializeField]
-            private BehaviourEvent mEvent = new BehaviourEvent();
+            private BehaviorProcess mEvent = new BehaviorProcess();
 
             /// <summary>
             /// doable judge function.
             /// </summary>
             private Judge mJudge = ( node ) => { return true; };
+
+            /// <summary>
+            /// this process's name.
+            /// </summary>
+            [SerializeField]
+            private string mProcessName;
+
+            /// <summary>
+            /// named instance constructor.
+            /// </summary>
+            /// <param name="name"></param>
+            public ProcessEventWrapper ( string name )
+            {
+                mProcessName = name;
+            }
 
             /// <summary>
             /// doable judge function delegate.
@@ -134,6 +154,12 @@ namespace AY_Util
             {
                 if (IsDoable( node ) == false) { return; }
                 mEvent.Invoke( node );
+            }
+
+            public ProcessEventWrapper Add ( UnityAction<BehaviorNode> proc )
+            {
+                mEvent.AddListener( proc );
+                return this;
             }
 
             /// <summary>
