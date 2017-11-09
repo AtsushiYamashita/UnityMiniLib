@@ -42,7 +42,7 @@ namespace AY_Util
         ///
         /// </summary>
         /// <param name="node"></param>
-        public delegate void BehaviourFunc ( BehaviorNode node );
+        public delegate void BehaviourFunc(BehaviorNode node);
 
         /// <summary>
         /// scene event type
@@ -56,21 +56,21 @@ namespace AY_Util
         /// list up enable and living children.
         /// </summary>
         /// <returns></returns>
-        public List<BehaviorNode> EnableChildren ( )
+        public List<BehaviorNode> EnableChildren()
         {
             var list = new List<BehaviorNode>();
             var count = transform.childCount;
             for (int i = 0; i < count; i++)
             {
-                var ch = transform.GetChild( i );
+                var ch = transform.GetChild(i);
                 if (ch.gameObject.activeSelf == false) { continue; }
 
                 var bn = ch.GetComponent<BehaviorNode>();
                 var enable = bn == null || bn.enabled == false;
                 if (enable) { continue; }
 
-                list.Add( bn );
-                list.AddRange( bn.EnableChildren() );
+                list.Add(bn);
+                list.AddRange(bn.EnableChildren());
             }
             return list;
         }
@@ -80,7 +80,7 @@ namespace AY_Util
         /// </summary>
         /// <param name="proc"></param>
         /// <returns></returns>
-        public BehaviorProcess GetProcessInstance ( Process proc )
+        public BehaviorProcess GetProcessInstance(Process proc)
         {
             return mProcesses[proc];
         }
@@ -88,32 +88,34 @@ namespace AY_Util
         /// <summary>
         /// this virtual function for extends.
         /// </summary>
-        virtual protected void ProcessInitialize ( ) { }
+        virtual protected void ProcessStart() { }
 
         /// <summary>
         /// This state update.
         /// </summary>
-        virtual protected void ProcessUpdate ( )
+        virtual protected void ProcessUpdate()
         {
-            foreach (var proc in mProcesses) { proc.Value.Action( this ); }
+            foreach (var proc in mProcesses) { proc.Value.Action(this); }
         }
 
         /// <summary>
         /// this function call process initialize for extends.
         /// </summary>
-        private void Start ( )
+        private void Start()
         {
-            mProcesses.AddChain( Process.START, mStrt )
-                .AddChain( Process.UPDATE, mUpdate )
-                .AddChain( Process.CLOSE, mClose );
-            ProcessInitialize();
+            mProcesses.AddChain(Process.START, mStrt)
+                .AddChain(Process.UPDATE, mUpdate)
+                .AddChain(Process.CLOSE, mClose);
+            mClose.AddListener(node => node.gameObject.SetActive(false));
+            mClose.SetFlg(false);
+            ProcessStart();
         }
 
         /// <summary>
         /// MonoBehaviour's update.
         /// and this node's update.
         /// </summary>
-        private void Update ( )
+        private void Update()
         {
             ProcessUpdate();
         }
@@ -128,23 +130,30 @@ namespace AY_Util
         /// <summary>
         /// doable judge function.
         /// </summary>
-        private Judge mJudge = ( node ) => { return true; };
+        protected Judge mJudge = null;
+
+        protected bool mJudgeFlg = true;
 
         /// <summary>
         /// doable judge function delegate.
         /// </summary>
         /// <param name="obj"></param>
         /// <returns></returns>
-        public delegate bool Judge ( BehaviorNode obj );
+        public delegate bool Judge(BehaviorNode obj);
 
         /// <summary>
         /// state action.
         /// </summary>
         /// <param name="node"></param>
-        public void Action ( BehaviorNode node )
+        public void Action(BehaviorNode node)
         {
-            if (IsDoable( node ) == false) { return; }
-            Invoke( node );
+            if (IsDoable(node) == false) { return; }
+            Invoke(node);
+        }
+
+        public void SetFlg(bool flg)
+        {
+            mJudgeFlg = flg;
         }
 
         /// <summary>
@@ -152,7 +161,7 @@ namespace AY_Util
         /// </summary>
         /// <param name="jucge"></param>
         /// <returns></returns>
-        public BehaviorProcess SetJudge ( Judge jucge )
+        public BehaviorProcess SetJudge(Judge jucge)
         {
             mJudge = jucge; return this;
         }
@@ -162,9 +171,10 @@ namespace AY_Util
         /// </summary>
         /// <param name="node"></param>
         /// <returns></returns>
-        protected bool IsDoable ( BehaviorNode node )
+        protected bool IsDoable(BehaviorNode node)
         {
-            return mJudge( node );
+            if (mJudge == null) { mJudge = (none) => mJudgeFlg; }
+            return mJudge(node);
         }
     }
 
@@ -179,9 +189,9 @@ namespace AY_Util
         /// <param name="a"></param>
         /// <param name="b"></param>
         /// <returns>return this instance for chain.</returns>
-        public ProcessDictionary AddChain ( BehaviorNode.Process a, BehaviorProcess b )
+        public ProcessDictionary AddChain(BehaviorNode.Process a, BehaviorProcess b)
         {
-            Add( a, b );
+            Add(a, b);
             return this;
         }
     }
