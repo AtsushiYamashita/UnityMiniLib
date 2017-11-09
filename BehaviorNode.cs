@@ -65,12 +65,12 @@ namespace AY_Util
                 var ch = transform.GetChild(i);
                 if (ch.gameObject.activeSelf == false) { continue; }
 
-                var bn = ch.GetComponent<BehaviorNode>();
-                var enable = bn == null || bn.enabled == false;
+                var node = ch.GetComponent<BehaviorNode>();
+                var enable = node == null || node.enabled == false;
                 if (enable) { continue; }
 
-                list.Add(bn);
-                list.AddRange(bn.EnableChildren());
+                list.Add(node);
+                list.AddRange(node.EnableChildren());
             }
             return list;
         }
@@ -159,11 +159,11 @@ namespace AY_Util
         /// <summary>
         /// set doable judge function.
         /// </summary>
-        /// <param name="jucge"></param>
+        /// <param name="judge"></param>
         /// <returns></returns>
-        public BehaviorProcess SetJudge(Judge jucge)
+        public BehaviorProcess SetJudge(Judge judge)
         {
-            mJudge = jucge; return this;
+            mJudge = judge; return this;
         }
 
         /// <summary>
