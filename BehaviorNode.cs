@@ -5,7 +5,9 @@
 namespace AY_Util
 {
     using System.Collections.Generic;
+    using System.Linq;
     using UnityEngine;
+    using UnityEngine.Assertions;
     using UnityEngine.Events;
 
     /// <summary>
@@ -15,6 +17,12 @@ namespace AY_Util
     [System.Serializable]
     public class BehaviorNode : MonoBehaviour
     {
+        /// <summary>
+        /// this node state
+        /// </summary>
+        [SerializeField]
+        private ProcessState mState;
+
         /// <summary>
         /// close process.
         /// </summary>
@@ -30,7 +38,7 @@ namespace AY_Util
         /// start process.
         /// </summary>
         [SerializeField]
-        private BehaviorProcess mStrt;
+        private BehaviorProcess mStart;
 
         /// <summary>
         /// update process.
@@ -38,18 +46,22 @@ namespace AY_Util
         [SerializeField]
         private BehaviorProcess mUpdate;
 
+
         /// <summary>
-        ///
+        /// this node state setting
         /// </summary>
-        /// <param name="node"></param>
-        public delegate void BehaviourFunc(BehaviorNode node);
+        public void SetState(string state)
+        {
+            Debug.Log("StateChange : @" + name + " /to " + state);
+            mState = EnumUtil<ProcessState>.StringTo(state);
+        }
 
         /// <summary>
         /// scene event type
         /// </summary>
-        public enum Process
+        public enum ProcessState
         {
-            START, UPDATE, CLOSE, SIZE
+            START, UPDATE, CLOSE, SIZE, NULL
         }
 
         /// <summary>
@@ -58,21 +70,21 @@ namespace AY_Util
         /// <returns></returns>
         public List<BehaviorNode> EnableChildren()
         {
-            var list = new List<BehaviorNode>();
-            var count = transform.childCount;
-            for (int i = 0; i < count; i++)
-            {
-                var ch = transform.GetChild(i);
-                if (ch.gameObject.activeSelf == false) { continue; }
-
-                var node = ch.GetComponent<BehaviorNode>();
-                var enable = node == null || node.enabled == false;
-                if (enable) { continue; }
-
-                list.Add(node);
-                list.AddRange(node.EnableChildren());
-            }
-            return list;
+            var objects = GameObjectUtil.GetChildren(gameObject);
+            var activeObjects = objects
+                .Where((elm) => { return elm.activeSelf; });
+            var activenodes = activeObjects
+                .Select((elm) => { return elm.GetComponent<BehaviorNode>(); })
+                .Where((elm) => { return elm != null; })
+                .Where((elm) => { return elm.enabled; });
+            var activeAll = activenodes
+                .SelectMany((elm) =>
+                {
+                    var ret = elm.EnableChildren();
+                    ret.Add(elm);
+                    return ret;
+                });
+            return activeAll as List<BehaviorNode>;
         }
 
         /// <summary>
@@ -80,7 +92,7 @@ namespace AY_Util
         /// </summary>
         /// <param name="proc"></param>
         /// <returns></returns>
-        public BehaviorProcess GetProcessInstance(Process proc)
+        public BehaviorProcess GetProcessInstance(ProcessState proc)
         {
             return mProcesses[proc];
         }
@@ -88,27 +100,52 @@ namespace AY_Util
         /// <summary>
         /// this virtual function for extends.
         /// </summary>
-        virtual protected void ProcessStart() { }
+        virtual protected void ProcessStart()
+        {
+            Debug.Log(this.name + "ProcessStart");
+            mStart.Action(this);
+        }
 
         /// <summary>
         /// This state update.
         /// </summary>
         virtual protected void ProcessUpdate()
         {
-            foreach (var proc in mProcesses) { proc.Value.Action(this); }
+            if (mState == ProcessState.START)
+            {
+                ProcessStart();
+                return;
+            }
+            if (mState == ProcessState.UPDATE)
+            {
+                mUpdate.Action(this);
+                return;
+            }
+            if (mState == ProcessState.CLOSE)
+            {
+                Debug.Log(name + "ProcessState.CLOSE");
+                mClose.Action(this);
+                gameObject.SetActive(false);
+                mState = ProcessState.START;
+            }
         }
+
+        public void PhaseCloseCheck()
+        {
+            var children = GameObjectUtil.GetChildren(gameObject);
+            var doable = children
+                .Select((e) => { return e.GetComponent<BehaviorNode>(); })
+                .SelectMany((e) => { return e.EnableChildren(); });
+            var converted = doable as BehaviorNode;
+            if (converted == null) { mState = ProcessState.CLOSE; }
+        }
+
 
         /// <summary>
         /// this function call process initialize for extends.
         /// </summary>
         private void Start()
         {
-            mProcesses.AddChain(Process.START, mStrt)
-                .AddChain(Process.UPDATE, mUpdate)
-                .AddChain(Process.CLOSE, mClose);
-            mClose.AddListener(node => node.gameObject.SetActive(false));
-            mClose.SetFlg(false);
-            ProcessStart();
         }
 
         /// <summary>
@@ -132,6 +169,7 @@ namespace AY_Util
         /// </summary>
         protected Judge mJudge = null;
 
+        [SerializeField]
         protected bool mJudgeFlg = true;
 
         /// <summary>
@@ -151,6 +189,10 @@ namespace AY_Util
             Invoke(node);
         }
 
+        /// <summary>
+        /// this process is use or is not use.
+        /// </summary>
+        /// <param name="flg"></param>
         public void SetFlg(bool flg)
         {
             mJudgeFlg = flg;
@@ -163,7 +205,8 @@ namespace AY_Util
         /// <returns></returns>
         public BehaviorProcess SetJudge(Judge judge)
         {
-            mJudge = judge; return this;
+            mJudge = judge;
+            return this;
         }
 
         /// <summary>
@@ -181,7 +224,8 @@ namespace AY_Util
     /// <summary>
     /// This class use for short cording and readability.
     /// </summary>
-    public class ProcessDictionary : Dictionary<BehaviorNode.Process, BehaviorProcess>
+    [System.Serializable]
+    public class ProcessDictionary : Dictionary<BehaviorNode.ProcessState, BehaviorProcess>
     {
         /// <summary>
         /// This update the add process for chain method.
@@ -189,7 +233,7 @@ namespace AY_Util
         /// <param name="a"></param>
         /// <param name="b"></param>
         /// <returns>return this instance for chain.</returns>
-        public ProcessDictionary AddChain(BehaviorNode.Process a, BehaviorProcess b)
+        public ProcessDictionary AddChain(BehaviorNode.ProcessState a, BehaviorProcess b)
         {
             Add(a, b);
             return this;
